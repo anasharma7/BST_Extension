@@ -1,199 +1,153 @@
 package app;
-
 public class BinarySearchTree {
-    // just a root variable
-    Node root;
+    private Node root;
 
-    /**
-     * Empty constructor is all we need for now
-     */
+    private static class Node {
+        int value;
+        Node left;
+        Node right;
+
+        public Node(int value) {
+            this.value = value;
+            this.left = null;
+            this.right = null;
+        }
+    }
+
+
     public BinarySearchTree() {
-        this.root = null;
+        root = null;
     }
 
-    /**
-     * Adds the data to the tree, duplicates are not allowed
-     *
-     * @param data value that you want to insert into the tree
-     */
-    public void add(int data) {
-        this.root = this.addNode(root, data);
+    public void insert(int data) {
+        root = insertNode(root, data);
     }
 
-    /**
-     * You need to implement this for the exam, you need to swap the two values, so
-     * find the node that contains the first value and find the node that contains
-     * the second value, then swap them.
-     *
-     * @param firstValue  the value of the first node to swap
-     * @param secondValue the value of the second node to swap
-     * @return true if the swap was successful and false if it wasn't (e.g. one of
-     *         the values wasn't there)
-     */
-    public boolean swapNodes(int firstValue, int secondValue) {
-        Node[] nodes = findNodes(root, firstValue, secondValue);
-        if (nodes[0] == null || nodes[1] == null) {
+    private Node insertNode(Node current, int data) {
+        if (current == null) {
+            return new Node(data);
+        }
+
+        if (data < current.value) {
+            current.left = insertNode(current.left, data);
+        } else if (data > current.value) {
+            current.right = insertNode(current.right, data);
+        }
+
+        return current;
+    }
+
+    public boolean search(int data) {
+        return searchNode(root, data);
+    }
+
+    private boolean searchNode(Node current, int data) {
+        if (current == null) {
             return false;
         }
-        int temp = nodes[0].data;
-        nodes[0].data = nodes[1].data;
-        nodes[1].data = temp;
-        return true;
+
+        if (data == current.value) {
+            return true;
+        } else if (data < current.value) {
+            return searchNode(current.left, data);
+        } else {
+            return searchNode(current.right, data);
+        }
     }
 
-    private Node[] findNodes(Node current, int firstValue, int secondValue) {
-        if (current == null) {
-            return new Node[] { null, null };
+    public boolean swapNodes(int firstValue, int secondValue) {
+        Node firstNode = findNode(root, firstValue);
+        Node secondNode = findNode(root, secondValue);
+
+        if (firstNode == null || secondNode == null) {
+            return false;
         }
-        if (current.data == firstValue) {
-            return new Node[] { current, findNode(root, secondValue) };
-        }
-        if (current.data == secondValue) {
-            return new Node[] { findNode(root, firstValue), current };
-        }
-        Node[] left = findNodes(current.left, firstValue, secondValue);
-        if (left[0] != null && left[1] != null) {
-            return left;
-        }
-        Node[] right = findNodes(current.right, firstValue, secondValue);
-        if (right[0] != null && right[1] != null) {
-            return right;
-        }
-        if (left[0] != null && left[1] == null) {
-            Node[] found = new Node[2];
-            found[0] = left[0];
-            found[1] = findNode(root, secondValue);
-            return found;
-        }
-        if (right[0] == null && right[1] != null) {
-            Node[] found = new Node[2];
-            found[0] = findNode(root, firstValue);
-            found[1] = right[1];
-            return found;
-        }
-        return new Node[] { null, null };
+
+        int temp = firstNode.value;
+        firstNode.value = secondNode.value;
+        secondNode.value = temp;
+
+        return true;
     }
 
     private Node findNode(Node current, int value) {
         if (current == null) {
             return null;
         }
-        if (current.data == value) {
+
+        if (value == current.value) {
             return current;
-        }
-        if (value < current.data) {
+        } else if (value < current.value) {
             return findNode(current.left, value);
+        } else {
+            return findNode(current.right, value);
         }
-        return findNode(current.right, value);
     }
 
-    /**
-     * You need to implement this for the exam, you need to check if the tree is
-     * constructed in a valid way, e.g. if a child of a node violates the BST rules
-     * it is invalid and returns false
-     *
-     * @return true if the tree is valid and false if it isn't
-     */
     public boolean isValid() {
-        return isSubtreeValid(root, null, null);
+        return isBST(root, Integer.MIN_VALUE, Integer.MAX_VALUE);
     }
 
-    private boolean isSubtreeValid(Node current, Node min, Node max) {
+    private boolean isBST(Node current, int minValue, int maxValue) {
         if (current == null) {
             return true;
         }
-        if ((min != null && current.data <= min.data) || (max != null && current.data >= max.data)) {
+
+        if (current.value < minValue || current.value > maxValue) {
             return false;
         }
-        return isSubtreeValid(current.left, min, current) && isSubtreeValid(current.right, current, max);
+
+        return isBST(current.left, minValue, current.value - 1) && isBST(current.right, current.value + 1, maxValue);
     }
 
-    /**
-     * You need to implement this for the exam, you need to find the two nodes that
-     * violate the BST and call swapNodes on them
-     *
-     * @return true if the tree is valid and false if it isn't
-     */
-    public boolean fixTree() {
-        Node[] nodes = findSwappableNodes(root, null, null);
-        if (nodes[0] == null || nodes[1] == null) {
-            return false;
+    public void fixTree() {
+        Node firstNode = null;
+        Node secondNode = null;
+
+        findNodesToSwap(root, null, Integer.MIN_VALUE, Integer.MAX_VALUE, firstNode, secondNode);
+
+        if (firstNode != null && secondNode != null) {
+            swapNodes(firstNode.value, secondNode.value);
         }
-        return swapNodes(nodes[0].data, nodes[1].data);
     }
 
-    /**
-     * Recursive function to find the two nodes that violate the BST
-     *
-     * @param current the current node being checked
-     * @param prev the previous node in the traversal
-     * @param nodes the nodes that violate the BST (if any)
-     * @return the nodes that violate the BST (if any)
-     */
-    private Node[] findSwappableNodes(Node current, Node prev, Node[] nodes) {
+    private void findNodesToSwap(Node current, Node parent, int minValue, int maxValue, Node firstNode,
+                                 Node secondNode) {
         if (current == null) {
-            return nodes;
+            return;
         }
 
-        nodes = findSwappableNodes(current.left, prev, nodes);
+        findNodesToSwap(current.left, current, minValue, current.value, firstNode, secondNode);
 
-        if (prev != null && current.data < prev.data) {
-            if (nodes[0] == null) {
-                nodes[0] = prev;
+        if (current.value < minValue || current.value > maxValue) {
+            if (firstNode == null) {
+                firstNode = parent;
+            } else {
+                secondNode = current;
             }
-            nodes[1] = current;
         }
 
-        nodes = findSwappableNodes(current.right, current, nodes);
-
-        return nodes;
+        findNodesToSwap(current.right, current, current.value, maxValue, firstNode, secondNode);
     }
 
-    /**
-     * Recursive function to find where to insert a node, no duplicates
-     *
-     * @param current the node that we are comparing to
-     * @param data    the data we want to insert into tree
-     * @return the modified node, not the inserted node
-     */
-    private Node addNode(Node current, int data) {
-        // time to insert node
+    public void add(int value) {
+        root = addRecursive(root, value);
+    }
+
+    private Node addRecursive(Node current, int value) {
         if (current == null) {
-            return new Node(data);
+            return new Node(value);
         }
 
-        // compare the data to the current node to see which way to traverse
-        if (data < current.data) {
-            current.left = this.addNode(current.left, data);
-        } else if (data > current.data) {
-            current.right = this.addNode(current.right, data);
+        if (value < current.value) {
+            current.left = addRecursive(current.left, value);
+        } else if (value > current.value) {
+            current.right = addRecursive(current.right, value);
+        } else {
+            // value already exists
+            return current;
         }
 
-        // if the data is already there, just return current
         return current;
-    }
-
-    @Override
-    public String toString() {
-        String result = this.inOrderTraversal(this.root);
-        return result.trim();
-    }
-
-    private String inOrderTraversal(Node current) {
-        StringBuilder strBldr = new StringBuilder();
-
-        // check if we have anything to add to the string
-        if (current != null) {
-            // go left first because this is inorder
-            strBldr.append(this.inOrderTraversal(current.left));
-
-            // no print the current node
-            strBldr.append(current.data + " ");
-
-            // go right last because inorder
-            strBldr.append(this.inOrderTraversal(current.right));
-        }
-
-        return strBldr.toString();
     }
 }
